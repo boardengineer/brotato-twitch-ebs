@@ -53,6 +53,7 @@ func _ready():
 	add_child(jwt_timer)
 	
 	refresh_timer = Timer.new()
+	refresh_timer.one_shot = true
 	refresh_timer.connect("timeout", self, "request_access_token_refresh")
 	add_child(refresh_timer)
 	
