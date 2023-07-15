@@ -21,7 +21,38 @@ func _physics_process(delta):
 	if send_countdown <= 0:
 		send_countdown = send_time
 		
+		var result_dict = {}
+		
+		for effect_key in RunData.init_stats():
+			result_dict[effect_key] = RunData.effects[effect_key]
+			
+		if is_instance_valid(_player):
+			var weapons_array = []
+			for weapon in _player.current_weapons:
+				var weapon_dict = {}
+				weapon_dict["id"] = weapon.weapon_id
+				weapon_dict["tier"] = weapon.tier
+				weapons_array.push_back(weapon_dict)
+			result_dict["weapons"] = weapons_array
+			
+			var items_array = []
+			for item in RunData.items:
+				var item_dict = {}
+				item_dict["id"] = item.my_id
+				items_array.push_back(item_dict)
+			result_dict["items"] = items_array
+		
+		print(result_dict)
+		
+		var item_ids = []
+		for item in ItemService.items:
+			item_ids.push_back(item.my_id)
+		print(item_ids)
+		
+		
+		
 		var body = to_json({"message": str(RunData.effects), "broadcaster_id": twitch_broadcaster_id, "target": ["broadcast"]})
+		
 		
 		var url = "https://api.twitch.tv/helix/extensions/pubsub"
 		
