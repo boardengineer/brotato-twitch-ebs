@@ -1,13 +1,17 @@
 extends Node
 
+signal auth_in_progress
+signal auth_failure
+signal auth_success
+
 var port := 31419
 var client_id = "pdvlxh7bxab4z9hwj9sfb7qc2o6epp"
 
 var redirect_server := TCP_Server.new()
 
 var auth_redirect_uri := "https://spiffy-moonbeam-925327.netlify.app/.netlify/functions/auth"
-var token_refresh_url = "https://spiffy-moonbeam-925327.netlify.app/.netlify/functions/refresh"
-var jwt_url = "https://spiffy-moonbeam-925327.netlify.app/.netlify/functions/jwt"
+var token_refresh_url := "https://spiffy-moonbeam-925327.netlify.app/.netlify/functions/refresh"
+var jwt_url := "https://spiffy-moonbeam-925327.netlify.app/.netlify/functions/jwt"
 
 var twitch_auth_url = "https://id.twitch.tv/oauth2/authorize"
 
@@ -33,7 +37,6 @@ var refresh_retry_attempts = 0
 const CONFIG_FILENAME = "user://twitch-auth.cfg"
 const CONFIG_SECTION = "auth"
 
-
 func _ready():
 	http_request_jwt = HTTPRequest.new()
 	add_child(http_request_jwt)
@@ -52,8 +55,6 @@ func _ready():
 	refresh_timer = Timer.new()
 	refresh_timer.connect("timeout", self, "request_access_token_refresh")
 	add_child(refresh_timer)
-	
-	get_auth_code()
 	
 	# If we've logged on before, we should have a refresh token we can use
 	# to get underway
@@ -90,6 +91,8 @@ Brotato has Successfully Connected to Twitch, Please close this tab...
 			refresh_retry_attempts = 0
 			access_token = request.split("access_token=")[1].split("&")[0]
 			refresh_token = request.split("refresh_token=")[1].split("&")[0]
+			save_config_file()
+			emit_signal("auth_success")
 			
 			_request_jwt_token()
 			
@@ -105,8 +108,8 @@ func _request_jwt_token():
 		
 	var error = http_request_jwt.request(url, [], false, HTTPClient.METHOD_GET)
 	if error != OK:
-		print_debug("An error occurred in the HTTP request.")
-	
+		print_debug("An error occurred in the HTTP request. ", error)
+
 func _jwt_request_callback(result, response_code, headers, body):
 	var parse_result = JSON.parse(body.get_string_from_ascii())
 	
@@ -114,16 +117,13 @@ func _jwt_request_callback(result, response_code, headers, body):
 		var result_dict = parse_result.result
 		jwt = result_dict.token
 		channel_id = result_dict.channel_id
-		print_debug("jwt ", jwt)
 	else:
 		# jwt request failed, request a new auth token
 		
 		# invalidate the access token so we don't keep trying
 		access_token = ""
 		request_access_token_refresh()
-		pass
 
-		
 func request_access_token_refresh():
 	if refresh_token == "":
 		return
@@ -146,6 +146,8 @@ func _token_refresh_request_callback(result, response_code, headers, body):
 		access_token = result_dict.access_token
 		refresh_token = result_dict.refresh_token
 		
+		emit_signal("auth_success")
+		save_config_file()
 		_request_jwt_token()
 	else:
 		if refresh_retry_attempts < 3:
@@ -154,10 +156,9 @@ func _token_refresh_request_callback(result, response_code, headers, body):
 		else:
 			# The refresh token doesn't work, invalidate it
 			refresh_token = ""
+			emit_signal("auth_failure")
 
 func get_auth_code():
-	set_process(true)
-	
 	var _redir_error = redirect_server.listen(port)
 	
 	var body_parts = [
@@ -169,4 +170,5 @@ func get_auth_code():
 	
 	var url = twitch_auth_url + "?" + PoolStringArray(body_parts).join("&")
 	
+	emit_signal("auth_in_progress")
 	OS.shell_open(url)
