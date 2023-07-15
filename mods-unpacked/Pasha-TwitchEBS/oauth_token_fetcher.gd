@@ -110,7 +110,7 @@ func _request_jwt_token():
 	if error != OK:
 		print_debug("An error occurred in the HTTP request. ", error)
 
-func _jwt_request_callback(result, response_code, headers, body):
+func _jwt_request_callback(_result, _response_code, _headers, body):
 	var parse_result = JSON.parse(body.get_string_from_ascii())
 	
 	if parse_result.error == OK:
@@ -136,7 +136,7 @@ func request_access_token_refresh():
 		print_debug("An error occurred in the token refresh HTTP request.")
 	pass
 
-func _token_refresh_request_callback(result, response_code, headers, body):
+func _token_refresh_request_callback(_result, _response_code, _headers, body):
 	var parse_result = JSON.parse(body.get_string_from_ascii())
 	
 	if parse_result.error == OK:
@@ -171,4 +171,4 @@ func get_auth_code():
 	var url = twitch_auth_url + "?" + PoolStringArray(body_parts).join("&")
 	
 	emit_signal("auth_in_progress")
-	OS.shell_open(url)
+	var _shell_result = OS.shell_open(url)

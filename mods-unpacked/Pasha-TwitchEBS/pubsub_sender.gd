@@ -63,5 +63,5 @@ func send_pubsub_request():
 		push_error("An error occurred in the HTTP request.")
 
 # Called when the HTTP request is completed.
-func _http_request_completed(result, response_code, headers, body):
+func _http_request_completed(_result, _response_code, _headers, _body):
 	pass
