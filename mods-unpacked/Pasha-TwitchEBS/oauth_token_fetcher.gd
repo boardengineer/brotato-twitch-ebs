@@ -9,9 +9,11 @@ var client_id = "pdvlxh7bxab4z9hwj9sfb7qc2o6epp"
 
 var redirect_server := TCP_Server.new()
 
-var auth_redirect_uri := "https://spiffy-moonbeam-925327.netlify.app/.netlify/functions/auth"
-var token_refresh_url := "https://spiffy-moonbeam-925327.netlify.app/.netlify/functions/refresh"
-var jwt_url := "https://spiffy-moonbeam-925327.netlify.app/.netlify/functions/jwt"
+var netlify_url := "https://spiffy-moonbeam-925327.netlify.app/"
+
+var auth_redirect_url_suffix := ".netlify/functions/auth"
+var token_refresh_url_suffix := ".netlify/functions/refresh"
+var jwt_url_suffix := ".netlify/functions/jwt"
 
 var twitch_auth_url = "https://id.twitch.tv/oauth2/authorize"
 
@@ -33,6 +35,10 @@ const TOKEN_REFRESH_TOTAL_RETRIES = 3
 var jwt_timer
 var refresh_timer
 var refresh_retry_attempts = 0
+
+# Will be true if the client id was read from the config file so it cane be written back
+var read_write_client = false
+var read_write_url = false
 
 const CONFIG_FILENAME = "user://twitch-auth.cfg"
 const CONFIG_SECTION = "auth"
@@ -71,10 +77,24 @@ func read_config_file():
 	
 	refresh_token = config.get_value(CONFIG_SECTION, "refresh_token", "")
 	
+	if config.has_section_key(CONFIG_SECTION, "client_id"):
+		client_id = config.get_value(CONFIG_SECTION, "client_id", "")
+		read_write_client = true
+		
+	if config.has_section_key(CONFIG_SECTION, "netlify_url"):
+		netlify_url = config.get_value(CONFIG_SECTION, "netlify_url", "")
+		read_write_url = true
+	
 func save_config_file():
 	var config = ConfigFile.new()
 	
 	config.set_value(CONFIG_SECTION, "refresh_token", refresh_token)
+	
+	if read_write_client:
+		config.set_value(CONFIG_SECTION, "client_id", client_id)
+		
+	if read_write_url:
+		config.set_value(CONFIG_SECTION, "netlify_url", netlify_url)
 	
 	config.save(CONFIG_FILENAME)
 	
@@ -105,7 +125,7 @@ func _request_jwt_token():
 	if access_token == "":
 		return
 	
-	var url = jwt_url + "?access_token=" + access_token
+	var url = netlify_url + jwt_url_suffix + "?access_token=" + access_token
 		
 	var error = http_request_jwt.request(url, [], false, HTTPClient.METHOD_GET)
 	if error != OK:
@@ -129,7 +149,7 @@ func request_access_token_refresh():
 	if refresh_token == "":
 		return
 	
-	var url = token_refresh_url + "?refresh_token=" + refresh_token
+	var url = netlify_url + token_refresh_url_suffix + "?refresh_token=" + refresh_token
 		
 	var error = http_request_token_refresh.request(url, [], false, HTTPClient.METHOD_GET)
 	
@@ -165,8 +185,8 @@ func get_auth_code():
 	var body_parts = [
 		"response_type=%s"    % "code",
 		"client_id=%s"        % client_id,
-		"redirect_uri=%s"     % auth_redirect_uri,
-		"scope=%s"            % "channel%3Amanage%3Apolls+channel%3Aread%3Apolls",
+		"redirect_uri=%s%s"     % [netlify_url, auth_redirect_url_suffix],
+		"scope=%s"            % "user%3Aread%3Abroadcast",
 	]
 	
 	var url = twitch_auth_url + "?" + PoolStringArray(body_parts).join("&")

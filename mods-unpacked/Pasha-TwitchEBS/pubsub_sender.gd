@@ -51,11 +51,11 @@ func send_pubsub_request():
 		items_array.push_back(item_dict)
 	result_dict["items"] = items_array
 	
-	var body = to_json({"message": str(RunData.effects), "broadcaster_id": twitch_broadcaster_id, "target": ["broadcast"]})
+	var body = to_json({"message": str(result_dict), "broadcaster_id": twitch_broadcaster_id, "target": ["broadcast"]})
 		
 	var headers = []
 	headers.push_back(str("Authorization: Bearer ", twitch_jwt))
-	headers.push_back("Client-Id: pdvlxh7bxab4z9hwj9sfb7qc2o6epp")
+	headers.push_back("Client-Id: %s" % $"/root/AuthHandler".client_id)
 	headers.push_back("Content-Type:application/json")
 	
 	var error = http_request.request(url, headers, true, HTTPClient.METHOD_POST, body)
@@ -64,4 +64,5 @@ func send_pubsub_request():
 
 # Called when the HTTP request is completed.
 func _http_request_completed(_result, _response_code, _headers, _body):
+#	print_debug(_response_code)
 	pass
