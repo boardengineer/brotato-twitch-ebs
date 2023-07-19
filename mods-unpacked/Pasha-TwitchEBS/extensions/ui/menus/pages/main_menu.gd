@@ -24,19 +24,21 @@ func start_twitch_auth():
 	if not $"/root".has_node("AuthHandler"):
 		return
 		
+	twitch_button.release_focus()
+		
 	$"/root/AuthHandler".get_auth_code()
 
 func make_button_red():
-	var stylebox_flat := StyleBoxFlat.new()
+	var stylebox_flat = twitch_button.get_stylebox("normal").duplicate()
 	stylebox_flat.bg_color = Color(1,0,0)
 	twitch_button.add_stylebox_override("normal", stylebox_flat)
 	
 func make_button_yellow():
-	var stylebox_flat := StyleBoxFlat.new()
+	var stylebox_flat = twitch_button.get_stylebox("normal").duplicate()
 	stylebox_flat.bg_color = Color(1,1,0)
 	twitch_button.add_stylebox_override("normal", stylebox_flat)
 	
 func make_button_green():
-	var stylebox_flat := StyleBoxFlat.new()
+	var stylebox_flat = twitch_button.get_stylebox("normal").duplicate()
 	stylebox_flat.bg_color = Color(0,1,0)
 	twitch_button.add_stylebox_override("normal", stylebox_flat)
