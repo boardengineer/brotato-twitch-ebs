@@ -48,6 +48,7 @@ func send_pubsub_request():
 	for item in RunData.items:
 		var item_dict = {}
 		item_dict["id"] = item.my_id
+		item_dict["tier"] = item.tier
 		items_array.push_back(item_dict)
 	result_dict["items"] = items_array
 	

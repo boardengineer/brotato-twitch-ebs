@@ -5,7 +5,7 @@ const MOD_DIR = "Pasha-TwitchEBS/"
 var OAuthTokenFetcher = load("res://mods-unpacked/Pasha-TwitchEBS/oauth_token_fetcher.gd")
 var PubsubSender = load("res://mods-unpacked/Pasha-TwitchEBS/pubsub_sender.gd")
 
-func _init():
+func _init(_modloader):
 	var ext_dir = ModLoaderMod.get_unpacked_dir() + MOD_DIR + "extensions/"
 	
 	ModLoaderMod.install_script_extension(ext_dir + "ui/menus/pages/main_menu.gd")
