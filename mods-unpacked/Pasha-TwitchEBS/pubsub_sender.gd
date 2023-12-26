@@ -27,12 +27,12 @@ var upload_queue_image := []
 var upload_queue_image_current := {}
 
 var update_queue_weapon := []
-var update_queue_item := []
+var update_queue_item := {}
 # Stats don't need a queue we always send the latest data
 var update_stats := {}
 
 var catch_up_store_weapons := {}
-var catch_up_store_items := []
+var catch_up_store_items := {}
 var catch_up_store_stats := {}
 var catch_up_store_images := []
 
@@ -182,12 +182,13 @@ func sender() -> void:
 	for i in batch_size_left:
 		if update_queue_item.empty():
 			break
-		var update_item: Dictionary = update_queue_item.pop_front()
+		var update_item: Dictionary = update_queue_item.values()[0]
+		update_queue_item.erase(update_item.id)
 		send_data.id = uuid_util.v4()
 		send_data.action = get_send_action_text(SendAction.ITEM_ADDED)
 		send_data.data = update_item
 		batch.push_back(send_data.duplicate(true))
-		catch_up_store_items.push_back(send_data.duplicate(true))
+		handle_catch_up_store_items(send_data.duplicate(true))
 		batch_size_left = batch_size_left - 1
 
 	# Upload Image
@@ -252,6 +253,7 @@ func clear_all() -> void:
 	catch_up_store_stats.clear()
 	catch_up_store_images.clear()
 	catch_up_index = 0
+	catch_up_index_image = 0
 
 	send([{"action": get_send_action_text(SendAction.CLEAR_ALL), "data": {}}])
 
@@ -259,13 +261,17 @@ func clear_all() -> void:
 func item_added(item_data: ItemData) -> void:
 	var new_item_data := {}
 	var new_item_icon_resource_path: String = item_data.icon.resource_path
+	var item_count := get_item_count(item_data.my_id)
 
 	new_item_data.id = item_data.my_id
 	new_item_data.tier = item_data.tier
 	new_item_data.name = tr(item_data.name)
 	new_item_data.effects = item_data.get_effects_text()
+	new_item_data.count = 1 if item_count == -1 else item_count + 1
 
-	update_queue_item.push_back(new_item_data)
+	# Add new `item_data` to the item queue if there is none with this ID or if the new count is higher.
+	if not update_queue_item.has(item_data.my_id) or update_queue_item[item_data.my_id].count < new_item_data.count:
+		update_queue_item[item_data.my_id] = new_item_data
 
 	if new_item_icon_resource_path.begins_with("res://mods-unpacked/"):
 		var image := Image.new()
@@ -375,12 +381,28 @@ func get_catch_up_store_array(get_images := true, get_stats := true, get_weapons
 				catch_up_store_array.push_back(send_data_weapon)
 
 	if not catch_up_store_items.empty() and get_items:
-		catch_up_store_array.append_array(catch_up_store_items)
+		catch_up_store_array.append_array(catch_up_store_items.values())
 
 	if not catch_up_store_images.empty() and get_images:
 		catch_up_store_array.append_array(catch_up_store_images)
 
 	return catch_up_store_array
+
+
+# This might look a bit weird, but I wanted to keep the structure of the `send_data` the same for all action types.
+# So, I add the `item_count` to the data prop.
+func handle_catch_up_store_items(send_data: Dictionary) -> void:
+	catch_up_store_items[send_data.data.id] = send_data
+
+
+func get_item_count(item_id: String) -> int:
+	if update_queue_item.has(item_id):
+		return update_queue_item[item_id].count
+
+	if catch_up_store_items.has(item_id):
+		return catch_up_store_items[item_id].data.count
+
+	return -1
 
 
 func handle_catch_up_store_weapons(send_data: Dictionary) -> void:
