@@ -117,6 +117,8 @@ func get_catch_up_batch(batch_size_left := BATCH_SIZE, send_image := true, send_
 	while batch_size_left > 0:
 		var action: Dictionary = catch_up_store[catch_up_index]
 
+		# Prevents potential doubling of stat updates.
+		# If there is space left in the update batch, it's filled up with catch up data, and it's very likely it will double up on the stats update.
 		if not send_stats and action.action == get_send_action_text(SendAction.STATS_UPDATE):
 			catch_up_index = catch_up_index + 1 if not catch_up_index + 1 == catch_up_store.size() else 0
 			if catch_up_store.size() == 1:
@@ -125,7 +127,24 @@ func get_catch_up_batch(batch_size_left := BATCH_SIZE, send_image := true, send_
 				continue
 
 		batch_size_left = batch_size_left - 1
+
+		# Update item effect text
+		if action.action == get_send_action_text(SendAction.ITEM_ADDED):
+			var new_text_effects := get_text_item(action.data.id)
+
+			action.data.effects = new_text_effects
+
+		# Update weapon stats and effects text
+		if action.action == get_send_action_text(SendAction.WEAPON_ADDED):
+			var new_text := get_text_weapon(action.data.id)
+			var new_text_stats: String = new_text[0]
+			var new_text_effects: String = new_text[1]
+
+			action.data.stats = new_text_stats
+			action.data.effects = new_text_effects
+
 		batch.push_back(action)
+
 		# Restart catch_up_index if we are at the end of the array
 		catch_up_index = catch_up_index + 1 if not catch_up_index + 1 == catch_up_store.size() else 0
 
@@ -372,17 +391,21 @@ func upload_image(item_id: String, image: Image) -> void:
 func get_catch_up_store_array(get_images := true, get_stats := true, get_weapons := true, get_items := true) -> Array:
 	var catch_up_store_array := []
 
+	# Stats
 	if not catch_up_store_stats.empty() and get_stats:
 		catch_up_store_array.push_back(catch_up_store_stats)
 
+	# Weapons
 	if not catch_up_store_weapons.empty() and get_weapons:
 		for send_data_weapons in catch_up_store_weapons.values():
 			for send_data_weapon in send_data_weapons:
 				catch_up_store_array.push_back(send_data_weapon)
 
+	# Items
 	if not catch_up_store_items.empty() and get_items:
 		catch_up_store_array.append_array(catch_up_store_items.values())
 
+	# Images
 	if not catch_up_store_images.empty() and get_images:
 		catch_up_store_array.append_array(catch_up_store_images)
 
@@ -426,6 +449,25 @@ func get_catch_up_batch_image() -> Array:
 	catch_up_index_image = catch_up_index_image + 1 if not catch_up_index_image + 1 == catch_up_store_images.size() else 0
 
 	return batch
+
+
+# Can be optimized by saving a reference of the `ItemData` in the catch up store, so I don't have to hunt for it in `RunData`.
+func get_text_item(id: String) -> String:
+	for item_data in RunData.items:
+		if item_data.my_id == id:
+			return item_data.get_effects_text()
+
+	return ""
+
+
+# Returns [stats text, effects text]
+# Can be optimized by saving a reference of the `WeaponData` in the catch up store, so I don't have to hunt for in `RunData`.
+func get_text_weapon(id: String) -> Array:
+	for weapon_data in RunData.weapons:
+		if weapon_data.my_id == id:
+			return [weapon_data.get_weapon_stats_text(), weapon_data.get_effects_text()]
+
+	return []
 
 
 func _send_timer_timeout() -> void:
