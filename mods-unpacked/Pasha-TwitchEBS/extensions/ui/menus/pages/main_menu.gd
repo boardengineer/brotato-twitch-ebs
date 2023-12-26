@@ -12,13 +12,14 @@ func _ready() -> void:
 
 	var auth_handler = $"/root/AuthHandler"
 
-	twitch_button = load("res://mods-unpacked/Pasha-TwitchEBS/TwitchAuthButton.tscn").instance()
+	twitch_button = load("res://mods-unpacked/Pasha-TwitchEBS/content/TwitchAuthButton.tscn").instance()
 
 	if auth_handler.jwt and auth_handler.jwt != "":
-		make_button_green()
+		call_deferred("make_button_green")
 
-	add_child(twitch_button)
-	move_child(twitch_button, 1)
+	var buttons_left: Node = get_node("HBoxContainer/ButtonsLeft")
+
+	buttons_left.add_child(twitch_button)
 
 	auth_handler.connect("auth_in_progress", self, "make_button_yellow")
 	auth_handler.connect("auth_failure", self, "make_button_red")
@@ -39,17 +40,17 @@ func start_twitch_auth() -> void:
 
 func make_button_red() -> void:
 	var stylebox_flat = twitch_button.get_stylebox("normal").duplicate()
-	stylebox_flat.bg_color = Color(1,0,0)
+	stylebox_flat.bg_color = Color(1, 0, 0, 0.8)
 	twitch_button.add_stylebox_override("normal", stylebox_flat)
 
 
 func make_button_yellow() -> void:
 	var stylebox_flat = twitch_button.get_stylebox("normal").duplicate()
-	stylebox_flat.bg_color = Color(1,1,0)
+	stylebox_flat.bg_color = Color(1, 1, 0, 0.8)
 	twitch_button.add_stylebox_override("normal", stylebox_flat)
 
 
 func make_button_green() -> void:
 	var stylebox_flat = twitch_button.get_stylebox("normal").duplicate()
-	stylebox_flat.bg_color = Color(0,1,0)
+	stylebox_flat.bg_color = Color(0, 1, 0, 0.8)
 	twitch_button.add_stylebox_override("normal", stylebox_flat)
