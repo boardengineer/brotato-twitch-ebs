@@ -11,22 +11,21 @@ func _ready() -> void:
 		return
 
 	var auth_handler = $"/root/AuthHandler"
+	var buttons_left: Node = get_node("HBoxContainer/ButtonsLeft")
 
 	twitch_button = load("res://mods-unpacked/Pasha-TwitchEBS/content/TwitchAuthButton.tscn").instance()
 
 	if auth_handler.jwt and auth_handler.jwt != "":
 		call_deferred("make_button_green")
 
-	var buttons_left: Node = get_node("HBoxContainer/ButtonsLeft")
-
 	buttons_left.add_child(twitch_button)
+
+	Pasha_pubsub_sender.is_started = false
 
 	auth_handler.connect("auth_in_progress", self, "make_button_yellow")
 	auth_handler.connect("auth_failure", self, "make_button_red")
 	auth_handler.connect("auth_success", self, "make_button_green")
 	twitch_button.connect("pressed", self, "start_twitch_auth")
-	continue_button.connect("pressed", Pasha_pubsub_sender, "call_deferred", ["resume"])
-	start_button.connect("pressed", Pasha_pubsub_sender, "call_deferred", ["resume"])
 
 
 func start_twitch_auth() -> void:

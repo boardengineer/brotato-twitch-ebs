@@ -8,6 +8,7 @@ const BATCH_SIZE = 5
 
 enum SendAction { CLEAR_ALL, STATS_UPDATE, WEAPON_ADDED, WEAPON_REMOVED, ITEM_ADDED, IMAGE_UPLOAD }
 
+var is_started := false
 var send_action_strings := {
 	0: "clear_all",
 	1: "stats_update",
@@ -131,17 +132,18 @@ func get_catch_up_batch(batch_size_left := BATCH_SIZE, send_image := true, send_
 		# Update item effect text
 		if action.action == get_send_action_text(SendAction.ITEM_ADDED):
 			var new_text_effects := get_text_item(action.data.id)
-
-			action.data.effects = new_text_effects
+			if not new_text_effects.empty():
+				action.data.effects = new_text_effects
 
 		# Update weapon stats and effects text
 		if action.action == get_send_action_text(SendAction.WEAPON_ADDED):
 			var new_text := get_text_weapon(action.data.id)
-			var new_text_stats: String = new_text[0]
-			var new_text_effects: String = new_text[1]
+			if not new_text.empty():
+				var new_text_stats: String = new_text[0]
+				var new_text_effects: String = new_text[1]
 
-			action.data.stats = new_text_stats
-			action.data.effects = new_text_effects
+				action.data.stats = new_text_stats
+				action.data.effects = new_text_effects
 
 		batch.push_back(action)
 
@@ -278,6 +280,9 @@ func clear_all() -> void:
 
 
 func item_added(item_data: ItemData) -> void:
+	if not is_game_running():
+		return
+
 	var new_item_data := {}
 	var new_item_icon_resource_path: String = item_data.icon.resource_path
 	var item_count := get_item_count(item_data.my_id)
@@ -300,6 +305,9 @@ func item_added(item_data: ItemData) -> void:
 
 # Remove a weapon with this id and tier
 func weapon_removed(item_data: WeaponData) -> void:
+	if not is_game_running():
+		return
+
 	var weapon_data := {}
 
 	weapon_data.id = item_data.my_id
@@ -310,6 +318,9 @@ func weapon_removed(item_data: WeaponData) -> void:
 
 # Add a new weapon
 func weapon_added(item_data: WeaponData) -> void:
+	if not is_game_running():
+		return
+
 	var weapon_data := {}
 	var new_weapon_icon_resource_path: String = item_data.icon.resource_path
 
@@ -329,6 +340,9 @@ func weapon_added(item_data: WeaponData) -> void:
 
 
 func stats_update() -> void:
+	if not is_game_running():
+		return
+
 	var stats_data := {}
 
 	# Get all stats
@@ -344,9 +358,10 @@ func stats_update() -> void:
 	update_stats = stats_data
 
 
-# TODO: What if only one chunk is created? Currently I send a image_upload image_upload_start and image_upload_end action to handle different states.
-# TODO: Only upload the same image once!
 func upload_image(item_id: String, image: Image) -> void:
+	if not is_game_running():
+		return
+
 	var base64 := Marshalls.raw_to_base64(image.save_png_to_buffer())
 	var base64_length := base64.length()
 	# 4kb message body limit -> roughly 4096 chars
@@ -470,7 +485,21 @@ func get_text_weapon(id: String) -> Array:
 	return []
 
 
+func is_game_running() -> bool:
+	var main := get_node_or_null("/root/Main")
+	var shop := get_node_or_null("/root/Shop")
+
+	return main or shop
+
+
 func _send_timer_timeout() -> void:
+	if not is_game_running():
+		return
+
+	if not is_started:
+		resume()
+		is_started = true
+
 	sender()
 	# Toggle catch up request
 	is_catch_up = not is_catch_up
