@@ -22,10 +22,8 @@ var send_timer: Timer
 var http_request: HTTPRequest
 var is_http_request_processing := false
 
-# [[image_base64_chunk, image_base64_chunk], [image_base64_chunk, image_base64_chunk]]
-var upload_queue_image := []
-# {"item_id": "item_my_id", "base64_chunks": [image_base64_chunk, image_base64_chunk]}
-var upload_queue_image_current := {}
+var update_queue_image := {}
+var update_queue_image_current_id := ""
 
 var update_queue_weapon := []
 var update_queue_item := {}
@@ -35,10 +33,12 @@ var update_stats := {}
 var catch_up_store_weapons := {}
 var catch_up_store_items := {}
 var catch_up_store_stats := {}
-var catch_up_store_images := []
+var catch_up_store_images := {}
+var catch_up_store_images_current_id := ''
 
 var catch_up_index := 0
 var catch_up_index_image := 0
+var catch_up_index_image_chunk := 0
 
 var is_catch_up := false
 var is_catch_up_image := false
@@ -214,30 +214,43 @@ func sender() -> void:
 
 	# Upload Image
 	for i in batch_size_left:
-		if upload_queue_image.empty() and upload_queue_image_current.empty():
+		if update_queue_image.empty():
 			break
-		if upload_queue_image_current.has("base64_chunks") and upload_queue_image_current.base64_chunks.empty():
-			upload_queue_image_current = {}
-			break
-		send_data.id = uuid_util.v4()
-		if not upload_queue_image_current.has("base64_chunks") or upload_queue_image_current.base64_chunks.empty():
-			send_data.action = get_send_action_text(SendAction.IMAGE_UPLOAD)
-			upload_queue_image_current = upload_queue_image.pop_front()
-		elif upload_queue_image_current.base64_chunks.size() == 1:
-			send_data.action = get_send_action_text(SendAction.IMAGE_UPLOAD)
-		else:
-			send_data.action = get_send_action_text(SendAction.IMAGE_UPLOAD)
 
-		var image_base64_data: Dictionary = upload_queue_image_current.base64_chunks.pop_front()
-		send_data.data = {
-			"item_id": upload_queue_image_current.item_id,
-			"base64_chunk": image_base64_data.string,
-			"base64_chunk_index": image_base64_data.index,
-			"base64_chunk_count": upload_queue_image_current.base64_chunk_count
-			}
+		var current_image := {}
+		var current_image_chunk := {}
+
+		if update_queue_image_current_id.empty() or not update_queue_image.has(update_queue_image_current_id):
+			update_queue_image_current_id = update_queue_image.keys()[0]
+
+		current_image = update_queue_image[update_queue_image_current_id]
+
+		# If there are no more chunks the upload is done and we can erase the image entry
+		if current_image.base64_chunks.empty():
+			update_queue_image.erase(update_queue_image_current_id)
+			update_queue_image_current_id = ""
+
+			if update_queue_image.empty():
+				break
+
+			update_queue_image_current_id = update_queue_image.keys()[0]
+			current_image = update_queue_image[update_queue_image_current_id]
+
+		current_image_chunk = current_image.base64_chunks.pop_front()
+
+		send_data.id = uuid_util.v4()
+		send_data.action = get_send_action_text(SendAction.IMAGE_UPLOAD)
+		send_data.data = {}
+		send_data.data.item_id = current_image.item_id
+		send_data.data.base64_chunk = current_image_chunk.string
+		send_data.data.base64_chunk_index = current_image_chunk.index
+		send_data.data.base64_chunk_count = current_image.base64_chunk_count
+
 		batch.push_back(send_data.duplicate(true))
-		catch_up_store_images.push_back(send_data.duplicate(true))
-		# Set it to 0 because this will take up all the space
+
+		handle_catch_up_store_images(send_data.duplicate(true))
+
+		# Images take up the entire batch
 		batch_size_left = 0
 		break
 
@@ -267,14 +280,15 @@ func resume() -> void:
 func clear_all() -> void:
 	update_queue_weapon.clear()
 	update_queue_item.clear()
-	upload_queue_image.clear()
-	upload_queue_image_current.clear()
+	update_queue_image.clear()
+	update_queue_image_current_id = ""
 	catch_up_store_weapons.clear()
 	catch_up_store_items.clear()
 	catch_up_store_stats.clear()
 	catch_up_store_images.clear()
 	catch_up_index = 0
 	catch_up_index_image = 0
+	catch_up_index_image_chunk = 0
 
 	send([{"action": get_send_action_text(SendAction.CLEAR_ALL), "data": {}}])
 
@@ -362,11 +376,14 @@ func upload_image(item_id: String, image: Image) -> void:
 	if not is_game_running():
 		return
 
+	if is_image_processed(item_id):
+		return
+
 	var base64 := Marshalls.raw_to_base64(image.save_png_to_buffer())
-	var base64_length := base64.length()
+	var base64_length := base64.length() as float
 	# 4kb message body limit -> roughly 4096 chars
-	var chunks := ceil(base64_length / 3500)
-	var base64_chunk_size := floor(base64_length / chunks)
+	var chunks := ceil(base64_length / 3500.0)
+	var base64_chunk_size := ceil(base64_length / chunks)
 	var base64_current_position := 0
 	var base64_chunks := []
 	var data := {
@@ -397,7 +414,7 @@ func upload_image(item_id: String, image: Image) -> void:
 	data.item_id = item_id
 	data.base64_chunks = base64_chunks
 
-	upload_queue_image.push_back(data)
+	update_queue_image[item_id] = data
 
 	ModLoaderLog.debug("Completted image splitting.", PASHA_TWITCHEBS_PUBSUBSENDER_LOG_NAME)
 
@@ -422,7 +439,8 @@ func get_catch_up_store_array(get_images := true, get_stats := true, get_weapons
 
 	# Images
 	if not catch_up_store_images.empty() and get_images:
-		catch_up_store_array.append_array(catch_up_store_images)
+		for image_chunks in catch_up_store_images.values():
+			catch_up_store_array.append_array(image_chunks)
 
 	return catch_up_store_array
 
@@ -455,13 +473,30 @@ func handle_catch_up_store_weapons(send_data: Dictionary) -> void:
 		catch_up_store_weapons[send_data.data.id].pop_back()
 
 
+func handle_catch_up_store_images(send_data: Dictionary) -> void:
+	if not catch_up_store_images.has(send_data.data.item_id):
+		catch_up_store_images[send_data.data.item_id] = []
+
+	catch_up_store_images[send_data.data.item_id].push_back(send_data)
+
+
 func get_catch_up_batch_image() -> Array:
 	var batch := []
 
-	batch.push_back(catch_up_store_images[catch_up_index_image])
+	var catch_up_store_images_values = catch_up_store_images.values()
+	var current_image: Array = catch_up_store_images_values[catch_up_index_image]
+	var action: Dictionary = current_image[catch_up_index_image_chunk]
 
-	# Restart catch_up_index_image if we are at the end of the array
-	catch_up_index_image = catch_up_index_image + 1 if not catch_up_index_image + 1 == catch_up_store_images.size() else 0
+	batch.push_back(action)
+
+	# If it's the last image chunk of the current image
+	if catch_up_index_image_chunk + 1 == current_image.size():
+		# Reset the chunk index
+		catch_up_index_image_chunk = 0
+		# Go to the next image
+		catch_up_index_image = catch_up_index_image + 1 if not catch_up_index_image + 1 == catch_up_store_images_values.size() else 0
+	else:
+		catch_up_index_image_chunk = catch_up_index_image_chunk + 1
 
 	return batch
 
@@ -490,6 +525,13 @@ func is_game_running() -> bool:
 	var shop := get_node_or_null("/root/Shop")
 
 	return main or shop
+
+
+func is_image_processed(id: String) -> bool:
+	if update_queue_image.has(id) or catch_up_store_images.has(id):
+		return true
+
+	return false
 
 
 func _send_timer_timeout() -> void:
