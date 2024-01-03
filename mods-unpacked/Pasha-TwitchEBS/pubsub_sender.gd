@@ -369,6 +369,7 @@ func stats_update() -> void:
 	# Add the special snowflakes
 	stats_data.trees = RunData.effects.trees
 	stats_data.free_rerolls = RunData.effects.free_rerolls
+	stats_data.heal_when_pickup_gold = RunData.effects.heal_when_pickup_gold
 
 	update_stats = stats_data
 
