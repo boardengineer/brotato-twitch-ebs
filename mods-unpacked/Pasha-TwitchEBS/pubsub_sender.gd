@@ -339,6 +339,7 @@ func weapon_added(item_data: WeaponData) -> void:
 	var new_weapon_icon_resource_path: String = item_data.icon.resource_path
 
 	weapon_data.id = item_data.my_id
+	weapon_data.weapon_id = item_data.weapon_id
 	weapon_data.tier = item_data.tier
 	weapon_data.name = tr(item_data.name)
 	weapon_data.set = tr(ItemService.get_weapon_sets_text(item_data.sets))
