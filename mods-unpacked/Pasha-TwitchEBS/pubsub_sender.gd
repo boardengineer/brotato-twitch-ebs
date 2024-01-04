@@ -9,6 +9,7 @@ const BATCH_SIZE = 5
 enum SendAction { CLEAR_ALL, STATS_UPDATE, WEAPON_ADDED, WEAPON_REMOVED, ITEM_ADDED, IMAGE_UPLOAD }
 
 var is_started := false
+var is_collect_data_enabled := false
 var send_action_strings := {
 	0: "clear_all",
 	1: "stats_update",
@@ -538,6 +539,10 @@ func is_image_processed(id: String) -> bool:
 
 func _send_timer_timeout() -> void:
 	if not is_game_running():
+		return
+
+	if not is_collect_data_enabled:
+		ModLoaderLog.info("Data collection is disabled. Toggle data collection in the main menu.", PASHA_TWITCHEBS_PUBSUBSENDER_LOG_NAME, true)
 		return
 
 	if not is_started:
