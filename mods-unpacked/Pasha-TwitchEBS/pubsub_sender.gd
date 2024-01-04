@@ -448,8 +448,6 @@ func get_catch_up_store_array(get_images := true, get_stats := true, get_weapons
 	return catch_up_store_array
 
 
-# This might look a bit weird, but I wanted to keep the structure of the `send_data` the same for all action types.
-# So, I add the `item_count` to the data prop.
 func handle_catch_up_store_items(send_data: Dictionary) -> void:
 	catch_up_store_items[send_data.data.id] = send_data
 
@@ -465,13 +463,13 @@ func get_item_count(item_id: String) -> int:
 
 
 func handle_catch_up_store_weapons(send_data: Dictionary) -> void:
-	# If add action add to catch up store
+	# If add action - add to catch up store
 	if send_data.action == get_send_action_text(SendAction.WEAPON_ADDED):
 		if not catch_up_store_weapons.has(send_data.data.id):
 			catch_up_store_weapons[send_data.data.id] = []
 		catch_up_store_weapons[send_data.data.id].push_back(send_data)
 
-	# If delete remove weapon with this id from catch up store
+	# If delete action - remove weapon with this id from catch up store
 	if send_data.action == get_send_action_text(SendAction.WEAPON_REMOVED):
 		catch_up_store_weapons[send_data.data.id].pop_back()
 
