@@ -47,6 +47,14 @@ var is_catch_up_image := false
 var url = "https://api.twitch.tv/helix/extensions/pubsub"
 
 
+func _ready() -> void:
+	add_send_timer()
+	add_http_request()
+
+	RunData.connect("stats_updated", self, "stats_update")
+	TempStats.connect("temp_stats_updated", self, "stats_update")
+
+
 func send_pubsub_request(data: String):
 	if not $"/root".has_node("AuthHandler"):
 		return
@@ -68,14 +76,6 @@ func send_pubsub_request(data: String):
 	var error = http_request.request(url, headers, true, HTTPClient.METHOD_POST, body)
 	if error != OK:
 		push_error("An error occurred in the HTTP request.")
-
-
-func _ready() -> void:
-	add_send_timer()
-	add_http_request()
-
-	RunData.connect("stats_updated", self, "stats_update")
-	TempStats.connect("temp_stats_updated", self, "stats_update")
 
 
 func add_send_timer() -> void:
