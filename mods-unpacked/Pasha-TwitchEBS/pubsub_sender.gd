@@ -80,7 +80,7 @@ func send_pubsub_request(data: String):
 
 func add_send_timer() -> void:
 	send_timer = Timer.new()
-	send_timer.name = "Twitch_EBS_Dev_Get_Data_Timer"
+	send_timer.name = "SendTimer"
 	send_timer.wait_time = SEND_TIME
 	send_timer.connect("timeout", self, "_send_timer_timeout")
 	add_child(send_timer)
