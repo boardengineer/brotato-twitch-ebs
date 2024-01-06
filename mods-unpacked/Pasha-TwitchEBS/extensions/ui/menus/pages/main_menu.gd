@@ -21,7 +21,7 @@ func _ready() -> void:
 
 
 	if auth_handler.jwt and not auth_handler.jwt == "":
-		call_deferred("button_style_green")
+		call_deferred("make_button_green")
 		twitch_button_send_data.pressed = Pasha_pubsub_sender.is_collect_data_enabled
 
 	buttons_left.add_child(twitch_buttons)
@@ -56,11 +56,11 @@ func _on_auth_in_progress() -> void:
 
 
 func _on_auth_success() -> void:
-	button_style_green()
+	make_button_green()
 	twitch_button_send_data.pressed = true
 
 
-func button_style_green() -> void:
+func make_button_green() -> void:
 	var stylebox_flat = twitch_button_auth.get_stylebox("normal").duplicate()
 	stylebox_flat.bg_color = Color(0, 1, 0, 0.8)
 	twitch_button_auth.add_stylebox_override("normal", stylebox_flat)
