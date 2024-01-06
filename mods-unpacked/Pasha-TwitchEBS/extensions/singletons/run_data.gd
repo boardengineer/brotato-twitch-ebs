@@ -1,7 +1,7 @@
 extends "res://singletons/run_data.gd"
 
 
-onready var Pasha_pubsub_sender = get_node("/root/ModLoader/Pasha-TwitchEBS/pubsubSender")
+onready var Pasha_pubsub_sender = get_node("/root/ModLoader/Pasha-TwitchEBS/PubsubSender")
 
 
 func reset(restart: bool = false) -> void:

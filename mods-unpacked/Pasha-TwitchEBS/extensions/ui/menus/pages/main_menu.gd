@@ -5,7 +5,7 @@ var twitch_buttons
 var twitch_button_auth: Button
 var twitch_button_send_data: CheckButton
 
-onready var Pasha_pubsub_sender = get_node("/root/ModLoader/Pasha-TwitchEBS/pubsubSender")
+onready var Pasha_pubsub_sender = get_node("/root/ModLoader/Pasha-TwitchEBS/PubsubSender")
 
 
 func _ready() -> void:

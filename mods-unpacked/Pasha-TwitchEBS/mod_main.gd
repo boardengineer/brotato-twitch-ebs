@@ -25,6 +25,6 @@ func _ready():
 	$"/root".call_deferred("add_child", auth_handler)
 
 	var pubsub_sender = PubsubSender.new()
-	pubsub_sender.name = "pubsubSender"
+	pubsub_sender.name = "PubsubSender"
 	add_child(pubsub_sender)
 
