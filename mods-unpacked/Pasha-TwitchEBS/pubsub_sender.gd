@@ -277,7 +277,7 @@ func resume() -> void:
 	stats_update()
 
 
-# Imidiatly sends a clear_all action to the front end
+# Immediately sends a clear_all action to the front-end
 func clear_all() -> void:
 	update_queue_weapon.clear()
 	update_queue_item.clear()
