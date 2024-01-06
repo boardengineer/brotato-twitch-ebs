@@ -6,7 +6,7 @@ var OAuthTokenFetcher = load("res://mods-unpacked/Pasha-TwitchEBS/oauth_token_fe
 var PubsubSender = load("res://mods-unpacked/Pasha-TwitchEBS/pubsub_sender.gd")
 
 
-func _init(modloader = ModLoader) -> void:
+func _init() -> void:
 	install_script_extensions()
 
 
