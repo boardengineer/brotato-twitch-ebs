@@ -15,7 +15,7 @@ func _ready() -> void:
 	var auth_handler = $"/root/AuthHandler"
 	var buttons_left: Node = get_node("HBoxContainer/ButtonsLeft")
 
-	twitch_buttons = load("res://mods-unpacked/Pasha-TwitchEBS/content/TwitchAuthButton.tscn").instance()
+	twitch_buttons = load("res://mods-unpacked/Pasha-TwitchEBS/content/TwitchAuthButtons.tscn").instance()
 	twitch_button_auth = twitch_buttons.get_node("TwitchAuthButton")
 	twitch_button_send_data = twitch_buttons.get_node("TwitchSendDataToggle")
 
